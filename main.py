@@ -1,0 +1,2 @@
+import ledky
+ledky.main()
