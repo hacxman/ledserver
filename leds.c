@@ -9,6 +9,9 @@
 #include <sys/mman.h>
 #include <signal.h>
 
+#include <sys/socket.h>
+#include <netinet/in.h>
+
 #include "clk.h"
 #include "gpio.h"
 #include "dma.h"
@@ -83,6 +86,23 @@ static void setup_handlers(void)
     sigaction(SIGKILL, &sa, NULL);
 }
 
+int start_server() {
+        int sfd;
+        struct sockaddr_in saddr;
+
+        sfd= socket(AF_INET, SOCK_DGRAM, 0);
+        saddr.sin_family=AF_INET;           /* Set Address Family to Internet */
+        saddr.sin_addr.s_addr=htonl(INADDR_ANY);    /* Any Internet address */
+        saddr.sin_port=htons(6666);            /* Set server port to 29008 */
+                            /* select any arbitrary Port >1024 */
+        if (bind(sfd, (struct sockaddr *)&saddr, sizeof(saddr)) < 0) {
+                perror("bind failed:");
+                exit(EXIT_FAILURE);
+        }
+
+        return sfd;
+}
+
 int main(int argc, char *argv[])
 {
     int ret = 0;
@@ -95,16 +115,19 @@ int main(int argc, char *argv[])
 
     char *line = NULL;
     size_t llen;
-    int i,j=0;
+    int32_t i,j=0;
     enum {
       MODE_RAINBOW,
       MODE_ARRAY,
       MODE_COUNT
     };
-    int mode = MODE_ARRAY;
+    int mode = MODE_RAINBOW;
+
+    int server = start_server();
+
     while (1)
     {
-        getline(&line, &llen, stdin);
+/*        getline(&line, &llen, server);
 	if (line) {
         if (strncmp("quit", line, 4) == 0) {
           printf("quit\n");
@@ -115,12 +138,25 @@ int main(int argc, char *argv[])
           mode = MODE_ARRAY;
         } else if (strncmp("count", line, 5) == 0) {
           mode = MODE_COUNT;
-        }}
+        }} */
+        char cmd;
+        ssize_t mlen = recvfrom (server, &cmd, 1, 0, NULL, NULL);
+        printf("ml=%i\n", mlen);
+        switch (cmd) {
+        case 'q': {printf("quit\n"); exit(EXIT_SUCCESS);};
+        case 'r': {mode = MODE_RAINBOW; break;};
+        case 'a': {mode = MODE_ARRAY; break;};
+        case 'c': {mode = MODE_COUNT; break;};
+        default: continue;
+        }
 
         switch (mode) {
         case MODE_RAINBOW: {
-          printf("r\n");
-          j = atoi(line);
+//          j = atoi(line);
+          printf("%i\n", sizeof j);
+          mlen = recvfrom (server, &j, sizeof j, 0, NULL, NULL);
+          printf("r %i %i\n", j, mlen);
+
           //matrix_render();
           for (i = 0; i < LED_COUNT; i++) {
             ledstring.channel[0].leds[i] = wheel((i*256/LED_COUNT+j) % 256);
@@ -130,15 +166,21 @@ int main(int argc, char *argv[])
         case MODE_ARRAY: {
           printf("a\n");
           int t = 0;
+          unsigned char arr[LED_COUNT * 3];
+          mlen = recvfrom (server, arr, sizeof arr, 0, NULL, NULL);
+          printf("ml2=%i\n", mlen);
           for (t = 0; t < LED_COUNT; t++) {
-            fread(&ledstring.channel[0].leds[t], 3, 1, stdin);
+            //fread(&ledstring.channel[0].leds[t], 3, 1, stdin);
+            ledstring.channel[0].leds[t] = arr[3*t]+(arr[3*t+1]<<8)+(arr[3*t+2]<<16);
           }
           break;
         };
         case MODE_COUNT: {
           printf("c\n");
           int t = 0;
-          int n = atoi(line);
+          int n;
+//          int n = atoi(line);
+          recvfrom (server, &n, sizeof n, 0, NULL, NULL);
           for (t = 0; t < LED_COUNT; t++) {
             ledstring.channel[0].leds[t] = t < n ? 0xffffff : 0;
           }
