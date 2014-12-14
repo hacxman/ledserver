@@ -140,13 +140,15 @@ int main(int argc, char *argv[])
           mode = MODE_COUNT;
         }} */
         char cmd;
-        ssize_t mlen = recvfrom (server, &cmd, 1, 0, NULL, NULL);
+        struct sockaddr caddr; socklen_t caddr_len;
+        ssize_t mlen = recvfrom (server, &cmd, 1, 0, &caddr, &caddr_len);
         printf("ml=%i\n", mlen);
         switch (cmd) {
         case 'q': {printf("quit\n"); exit(EXIT_SUCCESS);};
         case 'r': {mode = MODE_RAINBOW; break;};
         case 'a': {mode = MODE_ARRAY; break;};
         case 'c': {mode = MODE_COUNT; break;};
+        case 'x': {sendto(server, itoa(LED_COUNT), strlen(itoa(LED_COUNT)), &caddr, &caddr_len);}
         default: continue;
         }
 
