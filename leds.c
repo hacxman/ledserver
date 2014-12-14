@@ -149,11 +149,11 @@ int main(int argc, char *argv[])
         case 'a': {mode = MODE_ARRAY; break;};
         case 'c': {mode = MODE_COUNT; break;};
         case 'x': {
-                    char buf[64];
-                    int l = snprintf(buf, 64, "%i", LED_COUNT);
+                    /*char buf[64];
+                    int l = snprintf(buf, 64, "%i", LED_COUNT); */
                     int lc = LED_COUNT;
                     sendto(server, &lc, sizeof lc, 0, &caddr, caddr_len);
-                    printf("on x sent buf '%i'\n", lc);
+                    printf("on x sent buf '%i' %i\n", lc, caddr_len);
                   }
         default: continue;
         }
