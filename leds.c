@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
                     char buf[64];
                     int l = snprintf(buf, 64, "%i", LED_COUNT);
                     int lc = LED_COUNT;
-                    sendto(server, &lc, sizeof lc, 0, &caddr, &caddr_len);
+                    sendto(server, &lc, sizeof lc, 0, &caddr, caddr_len);
                     printf("on x sent buf '%i'\n", lc);
                   }
         default: continue;
