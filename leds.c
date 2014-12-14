@@ -148,7 +148,10 @@ int main(int argc, char *argv[])
         case 'r': {mode = MODE_RAINBOW; break;};
         case 'a': {mode = MODE_ARRAY; break;};
         case 'c': {mode = MODE_COUNT; break;};
-        case 'x': {sendto(server, itoa(LED_COUNT), strlen(itoa(LED_COUNT)), &caddr, &caddr_len);}
+        case 'x': {
+                    char buf[64];
+                    int l = snprintf(buf, 64, "%i", LED_COUNT);
+                    sendto(server, buf, l, 0, &caddr, &caddr_len);}
         default: continue;
         }
 
