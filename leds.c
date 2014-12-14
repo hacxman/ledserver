@@ -151,7 +151,9 @@ int main(int argc, char *argv[])
         case 'x': {
                     char buf[64];
                     int l = snprintf(buf, 64, "%i", LED_COUNT);
-                    sendto(server, buf, l, 0, &caddr, &caddr_len);}
+                    sendto(server, buf, l, 0, &caddr, &caddr_len);
+                    printf("on x sent buf '%s'\n", buf);
+                  }
         default: continue;
         }
 
