@@ -1,5 +1,5 @@
 To compile you need rpi_ws2811 library [1], then
-gcc leds.c libws2811.a -I../rpi_ws281x/
+gcc leds.c ../rpi_ws281x/libws2811.a -I../rpi_ws281x/
 
 To run: sudo ./a.out
 will listen on UDP port 6666
