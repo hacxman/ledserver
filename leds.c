@@ -30,10 +30,19 @@
 #define HEIGHT                                   240
 #define LED_COUNT                                (WIDTH * HEIGHT)
 
-int wheel(int pos) {
-  if (pos < 85) { return ((pos*3)<<16)+((255-pos*3)<<8)+0; }
-  else if (pos < 170) { pos -= 85; return ((255-pos*3)<<16)+0+((pos*3)); }
-  else { pos -= 170; return 0+((pos*3)<<8)+((255-pos*3)); }
+uint8_t sadd8(uint32_t a, uint32_t b) { 
+  return (a > 0xFF - b) ? 0xFF : a + b;
+}
+
+uint8_t sat8(uint32_t a) {
+  return (a > 0xFF) ? 0xFF : a;
+}
+
+int wheel(int pos, int brightness) {
+  float coeff = brightness / 1024.0;
+  if (pos < 85) { return (sat8(coeff*pos*3) << 16) + (sat8(coeff*(255-pos*3)) << 8) + 0; }
+  else if (pos < 170) { pos -= 85; return (sat8(coeff*(255-pos*3)) << 16) + 0 + sat8(coeff*(pos*3)); }
+  else { pos -= 170; return 0+(sat8(coeff*(pos*3)) << 8) + sat8(coeff*(255-pos*3)); }
 }
 
 ws2811_t ledstring =
@@ -119,11 +128,13 @@ int main(int argc, char *argv[])
     enum {
       MODE_RAINBOW,
       MODE_ARRAY,
-      MODE_COUNT
+      MODE_COUNT,
+      MODE_BRIGHT
     };
     int mode = MODE_RAINBOW;
 
     int server = start_server();
+    int brightness = 1024;
 
     while (1)
     {
@@ -148,6 +159,7 @@ int main(int argc, char *argv[])
         case 'r': {mode = MODE_RAINBOW; break;};
         case 'a': {mode = MODE_ARRAY; break;};
         case 'c': {mode = MODE_COUNT; break;};
+        case 'b': {mode = MODE_BRIGHT; break;};
         case 'x': {
                     /*char buf[64];
                     int l = snprintf(buf, 64, "%i", LED_COUNT); */
@@ -167,7 +179,7 @@ int main(int argc, char *argv[])
 
           //matrix_render();
           for (i = 0; i < LED_COUNT; i++) {
-            ledstring.channel[0].leds[i] = wheel((i*256/LED_COUNT+j) % 256);
+            ledstring.channel[0].leds[i] = wheel((i*256/LED_COUNT+j) % 256, brightness);
           }
           break;
         };
@@ -177,9 +189,10 @@ int main(int argc, char *argv[])
           unsigned char arr[LED_COUNT * 3];
           mlen = recvfrom (server, arr, sizeof arr, 0, NULL, NULL);
           printf("ml2=%i\n", mlen);
+	  float coeff = brightness / 1024.0;
           for (t = 0; t < LED_COUNT; t++) {
             //fread(&ledstring.channel[0].leds[t], 3, 1, stdin);
-            ledstring.channel[0].leds[t] = arr[3*t]+(arr[3*t+1]<<8)+(arr[3*t+2]<<16);
+            ledstring.channel[0].leds[t] = sat8(coeff*arr[3*t])+(sat8(coeff*arr[3*t+1])<<8)+(sat8(coeff*arr[3*t+2])<<16);
           }
           break;
         };
@@ -194,6 +207,11 @@ int main(int argc, char *argv[])
           }
           break;
         };
+        case MODE_BRIGHT: {
+          printf("b\n");
+          recvfrom (server, &brightness, sizeof brightness, 0, NULL, NULL);
+          printf("%i\n", brightness);
+        }
         };
 
         if (ws2811_render(&ledstring))
